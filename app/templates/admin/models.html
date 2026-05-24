@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ static_url('dist/bootstrap-5.3.8-dist/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ static_url('dist/fontawesome-free-5.15.4-web/css/all.min.css') }}">
+    <link rel="stylesheet" href="{{ static_url('dist/layui-v2.13.6/css/layui.css') }}">
+    <link rel="stylesheet" href="{{ static_url('css/admin.css') }}">
+    <style>
+        .model-hero { padding: 28px; margin-bottom: 22px; }
+        .model-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+        .model-card { padding: 20px; min-height: 320px; position: relative; overflow:hidden; }
+        .model-card::before {
+            content:""; position:absolute; inset:auto -40px -40px auto; width:160px; height:160px; border-radius:50%;
+            background: radial-gradient(circle, rgba(37,99,235,.12), transparent 70%);
+        }
+        .model-title { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+        .model-sub { color: var(--muted); font-size: 13px; }
+        .metric { font-size: 30px; font-weight: 800; line-height: 1; }
+        @media (max-width: 992px) { .model-grid { grid-template-columns: 1fr; } }
+        #streamBox { white-space: pre-wrap; background: #0b1020; color: #dbeafe; min-height: 220px; }
+    </style>
+</head>
+<body class="admin-shell">
+<div class="page-shell">
+{% set active_page = 'api_interfaces' %}
+{% include "_sidebar.html" %}
+    <main class="main">
+        <div class="glass-strong model-hero">
+            <div class="topbar mb-0">
+                <div>
+                    <h1 class="title-large">一句话采集工作台</h1>
+                    <div class="subtitle">输入一句话，模型自动识别采集意图，SSE 流式输出，逐条返回标题并自动入库</div>
+                </div>
+                <div class="badge-soft"><i class="fas fa-bolt me-2"></i>优先调用系统模型</div>
+            </div>
+        </div>
+
+        <div class="glass-strong card-soft mb-4">
+            <form id="testForm" class="row g-3 align-items-end">
+                {% module xsrf_form_html() %}
+                <div class="col-md-10">
+                    <label class="form-label fw-semibold">一句话输入</label>
+                    <input class="form-control form-control-lg" id="prompt" name="prompt" placeholder="例如：我想收集四川农业大学的10条信息">
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-primary btn-lg" type="submit">开始采集</button>
+                </div>
+            </form>
+            <div class="mt-3 p-3 rounded-4" id="streamBox">等待输入...</div>
+        </div>
+
+        <div class="glass-strong card-soft mb-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div>
+                    <div class="badge-soft mb-2">说明</div>
+                    <div class="subtitle">支持识别“收集XX的10条信息”这种自然语言指令，并自动调用百度新闻采集。</div>
+                </div>
+                <a class="btn btn-outline-primary" href="/admin/watch-records">查看采集结果</a>
+            </div>
+        </div>
+
+        <div class="model-grid">
+            {% for model in models %}
+            <div class="glass-strong model-card">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div>
+                        <div class="model-title">{{ model['name'] }}</div>
+                        <div class="model-sub">{{ model['model_name'] }}</div>
+                    </div>
+                    {% if model['is_system'] %}<span class="badge-soft">系统默认</span>{% end %}
+                </div>
+                <div class="mb-3"><span class="badge-soft">{{ model['base_url'] }}</span></div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><div class="glass p-3"><div class="model-sub">总 Token</div><div class="metric">{{ model['token_total'] }}</div></div></div>
+                    <div class="col-6"><div class="glass p-3"><div class="model-sub">今日 Token</div><div class="metric">{{ model['token_today'] }}</div></div></div>
+                </div>
+                <div class="d-grid gap-2">
+                    <form action="/admin/models/system/{{ model['id'] }}" method="post">{% module xsrf_form_html() %}<button class="btn btn-outline-primary w-100">设为系统模型</button></form>
+                    <form action="/admin/models/update/{{ model['id'] }}" method="post">{% module xsrf_form_html() %}
+                        <input type="hidden" name="name" value="{{ model['name'] }}">
+                        <input type="hidden" name="model_name" value="{{ model['model_name'] }}">
+                        <input type="hidden" name="base_url" value="{{ model['base_url'] }}">
+                        <input type="hidden" name="api_key" value="{{ model['api_key'] }}">
+                        <input type="hidden" name="conversation_prompt" value="{{ model['conversation_prompt'] }}">
+                        <input type="hidden" name="is_system" value="{% if model['is_system'] %}1{% else %}0{% end %}">
+                        <button class="btn btn-outline-secondary w-100">快速修改</button>
+                    </form>
+                </div>
+            </div>
+            {% end %}
+        </div>
+    </main>
+</div>
+<script>
+const form = document.getElementById('testForm');
+const streamBox = document.getElementById('streamBox');
+form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    streamBox.textContent = '开始调用模型...\n';
+    const data = new FormData(form);
+    const resp = await fetch('/admin/models/test', { method: 'POST', body: data });
+    if (!resp.ok) { streamBox.textContent += '请求失败'; return; }
+    if (!resp.body) { streamBox.textContent += '当前浏览器不支持流式响应'; return; }
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split('\n\n');
+        buffer = parts.pop() || '';
+        for (const part of parts) {
+            const line = part.split('\n').find(x => x.startsWith('data: '));
+            if (!line) continue;
+            const payload = JSON.parse(line.slice(6));
+            if (payload.message) streamBox.textContent += payload.message + '\n';
+        }
+    }
+});
+</script>
+<script src="{{ static_url('dist/layui-v2.13.6/layui.js') }}"></script>
+</body>
+</html>

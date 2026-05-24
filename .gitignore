@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+ENV/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local database / runtime files
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+instance/
+
+# IDE / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Static files from packages
+app/static/dist/
