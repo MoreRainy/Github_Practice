@@ -11,5 +11,5 @@
         <a href="/admin/digital-employees" class="{% if active_page == 'digital_employees' %}active{% end %}"><i class="fas fa-user-astronaut"></i>数字员工</a>
         <a href="/admin/watch-sources" class="{% if active_page == 'watch_sources' %}active{% end %}"><i class="fas fa-layer-group"></i>百度新闻采集</a>
     </div>
-    <form action="/admin/logout" method="post" class="mt-4">{% module xsrf_form_html() %}<button class="btn btn-outline-secondary w-100">退出登录</button></form>
+    <form action="/auth/logout" method="post" class="mt-4">{% module xsrf_form_html() %}<button class="btn btn-outline-secondary w-100">退出登录</button></form>
 </aside>

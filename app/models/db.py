@@ -156,6 +156,7 @@ def init_db():
 
         conn.execute("INSERT OR IGNORE INTO roles(name, code, is_system) VALUES(?, ?, 1)", ("超级管理员", "super_admin"))
         conn.execute("INSERT OR IGNORE INTO roles(name, code, is_system) VALUES(?, ?, 0)", ("普通管理员", "normal_admin"))
+        conn.execute("INSERT OR IGNORE INTO roles(name, code, is_system) VALUES(?, ?, 0)", ("普通用户", "normal_user"))
         conn.execute("INSERT OR IGNORE INTO permissions(menu_group, name, code, sort_no) VALUES(?, ?, ?, ?)", ("系统管理", "功能管理", "system.menu", 10))
         conn.execute("INSERT OR IGNORE INTO permissions(menu_group, name, code, sort_no) VALUES(?, ?, ?, ?)", ("系统管理", "权限管理", "system.permission", 20))
         conn.execute("INSERT OR IGNORE INTO permissions(menu_group, name, code, sort_no) VALUES(?, ?, ?, ?)", ("系统管理", "角色管理", "system.role", 30))

@@ -106,6 +106,22 @@ class UserRepository:
         return int(row["c"])
 
     @staticmethod
+    def get_role_code(user_row) -> str | None:
+        if not user_row or not user_row["role_id"]:
+            return None
+        with get_connection() as conn:
+            row = conn.execute("select code from roles where id = ?", (user_row["role_id"],)).fetchone()
+        return row["code"] if row else None
+
+    @staticmethod
+    def is_admin_role(role_code: str | None) -> bool:
+        return role_code in ("super_admin", "normal_admin")
+
+    @staticmethod
+    def is_normal_user_role(role_code: str | None) -> bool:
+        return role_code == "normal_user"
+
+    @staticmethod
     def list_users(page: int = 1, page_size: int = 20):
         offset = (page - 1) * page_size
         with get_connection() as conn:

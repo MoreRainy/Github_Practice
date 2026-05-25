@@ -65,7 +65,7 @@
                                 <th>用户名</th>
                                 <th>角色</th>
                                 <th>创建时间</th>
-                                <th style="width:420px;">操作</th>
+                                <th style="width:280px;">操作</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -77,42 +77,18 @@
                                 <td><span class="badge-soft">{% if user['role_name'] %}{{ user['role_name'] }}{% else %}未分配{% end %}</span></td>
                                 <td class="text-secondary">{{ user['create_at'] }}</td>
                                 <td>
+                                    <div class="d-flex flex-wrap gap-2">
                                     {% if user['username'] == 'admin' %}
-                                    <form action="/admin/users/reset-password/{{ user['id'] }}" method="post" class="row g-2 align-items-center">
-                                        {% module xsrf_form_html() %}
-                                        <div class="col-md-9"><input class="form-control form-control-sm" type="password" name="password" placeholder="输入新密码，立即重置"></div>
-                                        <div class="col-md-3 d-grid"><button class="btn btn-sm btn-outline-primary">重置密码</button></div>
-                                    </form>
-                                    <div class="mt-2 text-muted small">系统默认用户：仅允许修改密码，不允许修改用户名和角色，也不允许删除</div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#resetModal{{ user['id'] }}">重置密码</button>
                                     {% else %}
-                                    <form action="/admin/users/update/{{ user['id'] }}" method="post" class="row g-2 align-items-center">
-                                        {% module xsrf_form_html() %}
-                                        <div class="col-md-4"><input class="form-control form-control-sm" name="username" value="{{ user['username'] }}"></div>
-                                        <div class="col-md-5">
-                                            <select class="form-select form-select-sm" name="role_id">
-                                                <option value="">角色</option>
-                                                {% for role in roles %}
-                                                <option value="{{ role['id'] }}" {% if user['role_id'] == role['id'] %}selected{% end %}>{{ role['name'] }}</option>
-                                                {% end %}
-                                            </select>
-                                        </div>
-                                        <div class="col-md-3 d-grid"><button class="btn btn-sm btn-outline-primary">保存</button></div>
-                                    </form>
-                                    <div class="row g-2 align-items-center mt-2">
-                                        <div class="col-md-9"><span class="text-muted small">如需修改密码，请使用右侧“重置密码”</span></div>
-                                        <div class="col-md-3 d-grid">
-                                            <form action="/admin/users/reset-password/{{ user['id'] }}" method="post">
-                                                {% module xsrf_form_html() %}
-                                                <input class="form-control form-control-sm mb-2" type="password" name="password" placeholder="重置密码">
-                                                <button class="btn btn-sm btn-outline-secondary w-100">重置密码</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                    <form action="/admin/users/delete/{{ user['id'] }}" method="post" class="mt-2" onsubmit="return confirm('确认删除用户？')">
-                                        {% module xsrf_form_html() %}
-                                        <button class="btn btn-sm btn-outline-danger">删除</button>
-                                    </form>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ user['id'] }}">修改信息</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#resetModal{{ user['id'] }}">重置密码</button>
+                                        <form action="/admin/users/delete/{{ user['id'] }}" method="post" class="m-0" onsubmit="return confirm('确认删除用户？')">
+                                            {% module xsrf_form_html() %}
+                                            <button class="btn btn-sm btn-outline-danger">删除</button>
+                                        </form>
                                     {% end %}
+                                    </div>
                                 </td>
                             </tr>
                             {% end %}
@@ -130,10 +106,74 @@
         </div>
     </main>
 </div>
+
+{% for user in users %}
+<div class="modal fade" id="editModal{{ user['id'] }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: 1px solid rgba(15,23,42,.08);">
+            <form action="/admin/users/update/{{ user['id'] }}" method="post">
+                {% module xsrf_form_html() %}
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">修改用户信息</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">用户名</label>
+                        <input class="form-control" name="username" value="{{ user['username'] }}" {% if user['username'] == 'admin' %}readonly{% end %}>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">角色</label>
+                        <select class="form-select" name="role_id" {% if user['username'] == 'admin' %}disabled{% end %}>
+                            <option value="">未分配</option>
+                            {% for role in roles %}
+                            <option value="{{ role['id'] }}" {% if user['role_id'] == role['id'] %}selected{% end %}>{{ role['name'] }}</option>
+                            {% end %}
+                        </select>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold">新密码（可选）</label>
+                        <input class="form-control" type="password" name="password" placeholder="留空则不修改密码">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="resetModal{{ user['id'] }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; border: 1px solid rgba(15,23,42,.08);">
+            <form action="/admin/users/reset-password/{{ user['id'] }}" method="post">
+                {% module xsrf_form_html() %}
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">重置密码</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-secondary mb-3">为用户 <strong>{{ user['username'] }}</strong> 设置新密码。</p>
+                    <label class="form-label fw-semibold">新密码</label>
+                    <input class="form-control" type="password" name="password" placeholder="请输入新密码" required>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">确认重置</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% end %}
+
 <script>
 const checkAll = document.getElementById('checkAll');
 checkAll?.addEventListener('change', () => document.querySelectorAll('input[name="user_ids"]:not(:disabled)').forEach(cb => cb.checked = checkAll.checked));
 </script>
+<script src="{{ static_url('dist/bootstrap-5.3.8-dist/js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ static_url('dist/layui-v2.13.6/layui.js') }}"></script>
 </body>
 </html>

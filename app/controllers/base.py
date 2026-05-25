@@ -8,6 +8,9 @@
 """
 import tornado.web
 
+from app.models.user import UserRepository
+
+
 class BaseHandler(tornado.web.RequestHandler):
 	# 公共类的用户态认证机制：
 	# - 框架会通过 xxxx() 的返回值来判断是否"已经登录"
@@ -18,3 +21,23 @@ class BaseHandler(tornado.web.RequestHandler):
 		if not username:
 			return None
 		return username.decode('utf-8')
+
+	def get_current_user_record(self):
+		username = self.get_current_user()
+		if not username:
+			return None
+		return UserRepository.get_user_by_username(username)
+
+
+class AdminBaseHandler(BaseHandler):
+	def prepare(self):
+		if self.request.path.rstrip("/") == "/admin/login":
+			return
+		username = self.get_current_user()
+		if not username:
+			return
+		user = UserRepository.get_user_by_username(username)
+		role_code = UserRepository.get_role_code(user)
+		if not UserRepository.is_admin_role(role_code):
+			self.redirect("/")
+			self.finish()

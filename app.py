@@ -48,9 +48,17 @@ from app.controllers.admin import (
 )
 from app.controllers.auth import LoginHandler, LogoutHandler
 from app.controllers.home import IndexHandler
-from app.models.db import init_db
+from app.models.db import get_connection, init_db
 from app.models.model_service import ModelServiceRepository
 from app.models.digital_employee import DigitalEmployeeRepository
+from app.models.user import UserRepository
+
+
+def ensure_demo_users():
+    with get_connection() as conn:
+        row = conn.execute("select id from roles where code = 'normal_user'").fetchone()
+        if row and not UserRepository.get_user_by_username("user"):
+            UserRepository.create_user("user", "123456", row["id"])
 
 
 def make_app():
@@ -59,7 +67,7 @@ def make_app():
         template_path=os.path.join(base_url, "app", "templates"),
         static_path=os.path.join(base_url, "app", "static"),
         cookie_secret="demo-cookie-secret-change-me",
-        login_url="/admin/login",
+        login_url="/auth/login",
         xsrf_cookies=True,
         debug=True,
         autoreload=True,
@@ -116,6 +124,7 @@ def make_app():
 
 if __name__ == "__main__":
     init_db()
+    ensure_demo_users()
     ModelServiceRepository.ensure_default_model()
     DigitalEmployeeRepository.ensure_defaults()
     app = make_app()
